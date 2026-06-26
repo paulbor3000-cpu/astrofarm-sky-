@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>Astrofarm Sky</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:-apple-system,sans-serif}
+#c{position:fixed;top:0;left:0;width:100%;height:100%;display:block}
+
+#hd{position:fixed;top:0;left:0;right:0;padding:48px 16px 12px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(to bottom,rgba(0,0,0,0.75),transparent);z-index:10;pointer-events:none}
+.logo{color:#fff;font-size:13px;font-weight:700;letter-spacing:3px}
+.logo span{color:#4dff91}
+#td{color:rgba(255,255,255,0.45);font-size:11px;text-align:right}
+
+#ctrl{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:10}
+.btn{background:rgba(0,0,0,0.75);border:1px solid rgba(77,255,145,0.35);color:#fff;padding:9px 18px;border-radius:50px;font-size:12px;cursor:pointer;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);letter-spacing:0.5px}
+.btn.on{background:rgba(77,255,145,0.15);border-color:#4dff91;color:#4dff91}
+
+#zc{position:fixed;right:16px;bottom:80px;display:flex;flex-direction:column;gap:8px;z-index:10}
+.zb{width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,0.75);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+#info{position:fixed;bottom:0;left:0;right:0;background:rgba(5,15,10,0.97);border-top:1px solid rgba(77,255,145,0.2);padding:20px 20px 38px;z-index:20;transform:translateY(100%);transition:transform 0.3s ease;max-height:58vh;overflow-y:auto;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+#info.show{transform:translateY(0)}
+#ic{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;color:#fff;font-size:14px;cursor:pointer}
+.it{color:#4dff91;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:3px}
+.in{color:#fff;font-size:22px;font-weight:700;margin-bottom:3px}
+.is{color:rgba(255,255,255,0.45);font-size:13px;margin-bottom:12px}
+.id{color:rgba(255,255,255,0.8);font-size:14px;line-height:1.65;margin-bottom:16px}
+.ist{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.isc{background:rgba(77,255,145,0.06);border:1px solid rgba(77,255,145,0.1);border-radius:10px;padding:9px 11px}
+.isl{color:rgba(255,255,255,0.35);font-size:9px;letter-spacing:1px;text-transform:uppercase}
+.isv{color:#fff;font-size:14px;font-weight:600;margin-top:1px}
+.ia{display:flex;gap:8px}
+.iab{flex:1;padding:12px;border-radius:12px;font-size:13px;font-weight:600;border:none;cursor:pointer}
+.iab.p{background:#4dff91;color:#000}
+.iab.s{background:rgba(77,255,145,0.1);color:#4dff91;border:1px solid rgba(77,255,145,0.3)}
+
+#ar-bar{position:fixed;top:100px;left:50%;transform:translateX(-50%);background:rgba(77,255,145,0.12);border:1px solid rgba(77,255,145,0.35);color:#4dff91;padding:6px 16px;border-radius:20px;font-size:11px;letter-spacing:1px;display:none;z-index:10}
+#ar-bar.show{display:block}
+
+#load{position:fixed;top:0;left:0;right:0;bottom:0;background:#050f0a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity 0.8s}
+#load.hide{opacity:0;pointer-events:none}
+.lr{width:56px;height:56px;border-radius:50%;border:2px solid rgba(77,255,145,0.15);border-top-color:#4dff91;animation:spin 1s linear infinite;margin-bottom:20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ll{color:#fff;font-size:13px;font-weight:700;letter-spacing:3px;margin-bottom:32px}
+.ll span{color:#4dff91}
+.lt{color:rgba(255,255,255,0.4);font-size:11px;letter-spacing:1px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="load">
+  <div class="ll">ASTROFARM <span>✦</span></div>
+  <div class="lr"></div>
+  <div class="lt" id="lt">Rendering night sky...</div>
+</div>
+
+<div id="hd">
+  <div class="logo">ASTROFARM <span>✦</span></div>
+  <div id="td">--:-- · --.-°N</div>
+</div>
+
+<div id="ar-bar">◎ AR MODE</div>
+
+<div id="ctrl">
+  <button class="btn" id="bL">📍 Location</button>
+  <button class="btn" id="bT">✦ Tonight</button>
+  <button class="btn" id="bAR">◎ AR</button>
+</div>
+
+<div id="zc">
+  <button class="zb" id="bZI">+</button>
+  <button class="zb" id="bZO">−</button>
+</div>
+
+<div id="info">
+  <button id="ic">✕</button>
+  <div class="it" id="ip-t"></div>
+  <div class="in" id="ip-n"></div>
+  <div class="is" id="ip-s"></div>
+  <div class="id" id="ip-d"></div>
+  <div class="ist" id="ip-st"></div>
+  <div class="ia">
+    <button class="iab p" id="bAtlas">+ Add to Atlas</button>
+    <button class="iab s" id="bClose">Close</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════
+// ASTROFARM SKY MAP v5 — WebGL / Three.js
+// ══════════════════════════════════════════════════════
+
+// ── STAR CATALOG ─────────────────────────────────────
+// [name, RA_h, Dec_deg, Vmag, BV, constellation]
+const STARS=[
+['Sirius',6.7525,-16.7161,-1.46,0.00,'Canis Major'],
+['Canopus',6.3992,-52.6956,-0.74,0.15,'Carina'],
+['Arcturus',14.261,19.1822,-0.05,1.23,'Boötes'],
+['Vega',18.6157,38.7836,0.03,0.00,'Lyra'],
+['Capella',5.2781,45.998,0.08,0.80,'Auriga'],
+['Rigel',5.2422,-8.2016,0.12,-0.03,'Orion'],
+['Procyon',7.6552,5.225,0.34,0.42,'Canis Minor'],
+['Betelgeuse',5.9194,7.4069,0.42,1.85,'Orion'],
+['Achernar',1.6286,-57.2367,0.46,-0.16,'Eridanus'],
+['Altair',19.8463,8.8683,0.77,0.22,'Aquila'],
+['Aldebaran',4.5987,16.5093,0.85,1.54,'Taurus'],
+['Spica',13.4199,-11.1613,0.97,-0.24,'Virgo'],
+['Antares',16.4901,-26.432,1.06,1.83,'Scorpius'],
+['Pollux',7.7553,28.0262,1.14,1.00,'Gemini'],
+['Fomalhaut',22.9608,-29.6222,1.16,0.09,'Piscis Austrinus'],
+['Deneb',20.6905,45.2803,1.25,0.09,'Cygnus'],
+['Regulus',10.1395,11.9672,1.35,-0.11,'Leo'],
+['Adhara',6.9771,-28.9722,1.50,-0.21,'Canis Major'],
+['Castor',7.5766,31.8883,1.57,0.03,'Gemini'],
+['Shaula',17.5601,-37.1038,1.62,-0.22,'Scorpius'],
+['Bellatrix',5.4188,6.3497,1.64,-0.22,'Orion'],
+['Elnath',5.4381,28.6078,1.65,-0.13,'Taurus'],
+['Alnilam',5.6036,-1.2019,1.70,-0.19,'Orion'],
+['Alnitak',5.6793,-1.9425,1.77,-0.21,'Orion'],
+['Mintaka',5.5336,-0.2992,2.23,-0.22,'Orion'],
+['Saiph',5.7954,-9.6697,2.09,-0.22,'Orion'],
+['Alioth',12.9004,55.9598,1.77,-0.02,'Ursa Major'],
+['Alkaid',13.7923,49.3133,1.85,-0.19,'Ursa Major'],
+['Dubhe',11.0621,61.7511,1.79,1.07,'Ursa Major'],
+['Merak',11.0307,56.3824,2.37,0.03,'Ursa Major'],
+['Phecda',11.8977,53.6947,2.44,0.04,'Ursa Major'],
+['Megrez',12.2565,57.0326,3.32,0.08,'Ursa Major'],
+['Mizar',13.3988,54.9254,2.27,0.02,'Ursa Major'],
+['Kaus Australis',18.4029,-34.3847,1.79,-0.03,'Sagittarius'],
+['Mirfak',3.4055,49.8612,1.79,0.48,'Perseus'],
+['Alhena',6.6285,16.3993,1.93,0.00,'Gemini'],
+['Peacock',20.4275,-56.735,1.94,-0.19,'Pavo'],
+['Alphard',9.4598,-8.6586,1.99,1.44,'Hydra'],
+['Polaris',2.53,89.2642,1.98,0.60,'Ursa Minor'],
+['Hamal',2.1197,23.4628,2.00,1.15,'Aries'],
+['Nunki',18.9211,-26.2967,2.02,-0.22,'Sagittarius'],
+['Denebola',11.8177,14.572,2.14,0.09,'Leo'],
+['Alpheratz',0.1397,29.0904,2.07,-0.04,'Andromeda'],
+['Mirach',1.1622,35.6203,2.06,1.58,'Andromeda'],
+['Almach',2.065,42.3297,2.17,1.37,'Andromeda'],
+['Markab',23.0794,15.2053,2.49,-0.03,'Pegasus'],
+['Scheat',23.0629,28.0828,2.44,1.67,'Pegasus'],
+['Algenib',0.2211,15.1836,2.83,-0.21,'Pegasus'],
+['Enif',21.7364,9.875,2.40,1.52,'Pegasus'],
+['Rasalhague',17.5822,12.56,2.08,0.15,'Ophiuchus'],
+['Kochab',14.8451,74.1556,2.08,1.47,'Ursa Minor'],
+['Schedir',0.6751,56.5372,2.23,1.17,'Cassiopeia'],
+['Caph',0.1528,59.1497,2.27,0.34,'Cassiopeia'],
+['Ruchbah',1.4303,60.2353,2.68,0.13,'Cassiopeia'],
+['Navi',0.9453,60.7167,2.47,-0.11,'Cassiopeia'],
+['Alderamin',21.3097,62.5856,2.45,0.22,'Cepheus'],
+['Cor Caroli',12.9338,38.3183,2.89,0.02,'Canes Venatici'],
+['Algieba',10.3328,19.8419,2.01,1.13,'Leo'],
+['Eltanin',17.9437,51.4889,2.24,1.52,'Draco'],
+['Sadr',20.3703,40.2567,2.20,0.67,'Cygnus'],
+['Gienah',20.7703,33.9706,2.46,0.99,'Cygnus'],
+['Tarazed',19.7713,10.6133,2.72,1.52,'Aquila'],
+['Albireo',19.5123,27.9597,3.05,1.13,'Cygnus'],
+['Sheliak',18.8347,33.3628,3.52,0.00,'Lyra'],
+['Sulafat',18.9819,32.6897,3.24,-0.07,'Lyra'],
+['Delta Cyg',19.7494,45.1306,2.87,-0.02,'Cygnus'],
+['Sadalsuud',21.5264,-5.5711,2.91,0.82,'Aquarius'],
+['Sadalmelik',22.0961,-0.3197,2.96,1.08,'Aquarius'],
+['Wezen',7.1396,-26.3932,1.83,0.68,'Canis Major'],
+['Mirzam',6.3783,-17.9558,1.98,-0.24,'Canis Major'],
+['Naos',8.0594,-40.0031,2.25,-0.28,'Puppis'],
+['Atria',16.8111,-69.0278,1.91,1.44,'Triangulum Australe'],
+['Miaplacidus',9.22,-69.7172,1.67,0.07,'Carina'],
+['Avior',8.3753,-59.5097,1.86,1.28,'Carina'],
+['Diphda',0.7264,-17.9867,2.04,1.02,'Cetus'],
+['Graffias',16.0906,-19.8053,2.62,-0.08,'Scorpius'],
+['Dschubba',16.0053,-22.6217,2.32,-0.12,'Scorpius'],
+['Sabik',17.1728,-15.725,2.43,0.05,'Ophiuchus'],
+['Sargas',17.6217,-42.9978,1.86,0.41,'Scorpius'],
+['Menkalinan',5.9921,44.9475,1.90,0.03,'Auriga'],
+['Thuban',14.0731,64.3756,3.65,0.08,'Draco'],
+['Rigil Kent',14.66,-60.8353,-0.27,0.71,'Centaurus'],
+['Hadar',14.0637,-60.373,0.60,-0.23,'Centaurus'],
+['Acrux',12.4433,-63.0991,0.77,-0.24,'Crux'],
+['Gacrux',12.5194,-57.1133,1.64,1.60,'Crux'],
+['Mimosa',12.7953,-59.6888,1.25,-0.24,'Crux'],
+['Gamma Vel',8.1589,-47.3367,1.78,-0.27,'Vela'],
+['Delta Vel',8.745,-54.7086,1.96,0.04,'Vela'],
+['Aspidiske',9.2847,-59.275,2.25,0.18,'Carina'],
+['Suhail',9.1333,-43.4325,2.23,1.66,'Vela'],
+['Regor',8.1589,-47.3367,1.78,-0.27,'Vela'],
+['Omega Cen',13.4467,-47.4783,3.90,1.01,'Centaurus'],
+['Eta Car',10.75,-59.6833,4.30,0.61,'Carina'],
+['Theta Cen',14.1117,-36.3681,2.06,1.01,'Centaurus'],
+['Mu Vel',10.7793,-49.42,2.69,0.89,'Vela'],
+['Porrima',12.6942,- 1.4494,2.74,0.38,'Virgo'],
+['Vindemiatrix',13.0362,10.9592,2.85,0.96,'Virgo'],
+['Minkar',12.1681,-22.6206,3.11,1.41,'Corvus'],
+['Algorab',12.4975,-16.5153,2.94,0.0,'Corvus'],
+['Kraz',12.5733,-23.3967,2.65,0.89,'Corvus'],
+['Alchiba',12.1433,-24.7286,4.02,0.32,'Corvus'],
+['Mizar',13.3988,54.9254,2.27,0.02,'Ursa Major'],
+['Alcor',13.4201,54.9878,3.99,0.19,'Ursa Major'],
+['Phad',11.8977,53.6947,2.44,0.04,'Ursa Major'],
+['Tania Aust',11.0307,41.4994,3.05,1.59,'Ursa Major'],
+['Muscida',8.5033,60.7181,3.35,1.28,'Ursa Major'],
+['Aldhibah',17.1467,65.7144,3.17,-0.10,'Draco'],
+['Rastaban',17.5072,52.3013,2.79,0.97,'Draco'],
+['Edasich',15.4147,58.9664,3.29,1.21,'Draco'],
+['Alrakis',17.1462,60.7144,4.92,-0.03,'Draco'],
+['Pherkad',15.3455,71.8339,3.05,0.10,'Ursa Minor'],
+['Yildun',17.5363,86.5869,4.36,0.03,'Ursa Minor'],
+['Errai',23.6564,77.6326,3.22,1.03,'Cepheus'],
+['Alfirk',21.4779,70.5606,3.23,-0.22,'Cepheus'],
+['Zeta Cep',22.1808,58.2014,3.35,1.58,'Cepheus'],
+['Iota Cep',22.8279,66.2008,3.52,1.02,'Cepheus'],
+['Schedar',0.6751,56.5372,2.23,1.17,'Cassiopeia'],
+['Ruchbah',1.4303,60.2353,2.68,0.13,'Cassiopeia'],
+['Achird',0.9451,57.8153,3.46,0.58,'Cassiopeia'],
+['Marfak',1.1564,60.2353,3.66,1.58,'Cassiopeia'],
+['Mirfak',3.4055,49.8612,1.79,0.48,'Perseus'],
+['Algol',3.1362,40.9564,2.12,-0.05,'Perseus'],
+['Atik',3.9659,31.8837,2.85,-0.20,'Perseus'],
+['Menkib',3.9144,35.7906,4.04,-0.27,'Perseus'],
+['Zeta Per',3.9022,31.8836,2.85,-0.21,'Perseus'],
+['Hamal',2.1197,23.4628,2.00,1.15,'Aries'],
+['Sheratan',1.9107,20.8081,2.64,0.09,'Aries'],
+['Mesarthim',1.8924,19.2939,3.86,0.01,'Aries'],
+['Menkar',3.0381,4.0897,2.53,1.64,'Cetus'],
+['Diphda',0.7264,-17.9867,2.04,1.02,'Cetus'],
+['Baten Kaitos',1.8569,-10.3350,3.74,1.11,'Cetus'],
+['Mira',2.3219,-2.9775,6.50,1.60,'Cetus'],
+['Aldebaran',4.5987,16.5093,0.85,1.54,'Taurus'],
+['Pleiades',3.7833,24.1167,1.60,0.01,'Taurus'],
+['Hyades',4.2781,15.6175,1.65,1.00,'Taurus'],
+['Ain',4.4775,19.1808,3.53,0.96,'Taurus'],
+['Tianguan',5.6275,21.1425,2.97,0.09,'Taurus'],
+['Alnath',5.4381,28.6078,1.65,-0.13,'Taurus'],
+['Cursa',5.1302,-5.0864,2.79,0.13,'Eridanus'],
+['Zaurak',3.9672,-13.5086,2.97,1.59,'Eridanus'],
+['Acamar',2.9714,-40.3047,2.88,0.13,'Eridanus'],
+['Achernar',1.6286,-57.2367,0.46,-0.16,'Eridanus'],
+['Furud',6.3561,-30.0633,3.02,-0.21,'Canis Major'],
+['Aludra',7.4017,-29.3031,2.45,-0.07,'Canis Major'],
+['Unukalhai',15.7378,6.4256,2.65,1.17,'Serpens'],
+['Alya',18.9589,4.2033,3.26,0.04,'Serpens'],
+['Rasalgethi',17.2441,14.3906,3.48,1.23,'Hercules'],
+['Kornephoros',16.5033,21.4897,2.77,0.94,'Hercules'],
+['Marsic',16.1481,17.0472,4.57,1.22,'Hercules'],
+['Sarin',17.2506,24.8394,3.14,0.05,'Hercules'],
+['Zeta Her',16.6883,31.6033,2.81,0.65,'Hercules'],
+['Eta Her',16.7147,38.9228,3.53,0.91,'Hercules'],
+['Pi Her',17.2506,36.8083,3.16,1.44,'Hercules'],
+['Theta Her',17.9378,37.2506,3.86,0.67,'Hercules'],
+['Iota Her',17.6578,46.0061,3.80,-0.18,'Hercules'],
+['Kappa Oph',17.7256,9.575,3.20,1.13,'Ophiuchus'],
+['Yed Prior',16.9353,-4.6928,2.73,1.57,'Ophiuchus'],
+['Cebalrai',17.7247,4.5669,2.77,1.17,'Ophiuchus'],
+['Marfik',17.3814,-0.6656,3.82,0.10,'Ophiuchus'],
+['Alnasl',18.0964,-30.4239,2.99,1.02,'Sagittarius'],
+['Kaus Media',18.3497,-29.8281,2.70,0.36,'Sagittarius'],
+['Ascella',19.0428,-29.8803,2.60,0.06,'Sagittarius'],
+['Phi Sgr',18.4608,-26.9869,3.17,-0.08,'Sagittarius'],
+['Tau Sgr',19.1156,-27.6708,3.32,0.91,'Sagittarius'],
+['Polis',18.2286,-21.0586,3.91,1.56,'Sagittarius'],
+['Rukbat',19.3981,-40.6158,3.96,-0.22,'Sagittarius'],
+['Kaus Borealis',18.4661,-25.4217,2.82,0.44,'Sagittarius'],
+['Albaldah',19.0977,-21.0236,2.89,0.29,'Sagittarius'],
+['Arkab Prior',19.3869,-44.4594,3.97,-0.05,'Sagittarius'],
+['Lesath',17.5307,-37.2958,2.69,-0.24,'Scorpius'],
+['Kappa Sco',17.7081,-39.0281,2.41,-0.21,'Scorpius'],
+['Wei',16.8356,-34.2931,3.19,0.35,'Scorpius'],
+['Girtab',17.6217,-42.9978,1.86,0.41,'Scorpius'],
+['Sargas',17.6217,-42.9978,1.86,0.41,'Scorpius'],
+['Iota1 Sco',17.7917,-40.1267,3.03,-0.22,'Scorpius'],
+['Mu1 Sco',16.8644,-38.0472,2.99,-0.22,'Scorpius'],
+['Eta Sco',17.2019,-43.2394,3.33,0.31,'Scorpius'],
+['Theta Sco',17.6217,-42.9978,1.86,0.41,'Scorpius'],
+['Zubenelgenubi',14.8481,-16.0417,2.75,0.12,'Libra'],
+['Zubeneschamali',15.2836,-9.3831,2.61,-0.13,'Libra'],
+['Brachium',15.0719,-25.2819,3.29,1.57,'Libra'],
+['Gamma Lib',15.5919,-14.7894,3.91,1.04,'Libra'],
+['Spica',13.4199,-11.1613,0.97,-0.24,'Virgo'],
+['Porrima',12.6942,-1.4494,2.74,0.38,'Virgo'],
+['Heze',13.5786,-0.5992,3.38,0.21,'Virgo'],
+['Zaniah',11.9447,1.1539,3.89,0.16,'Virgo'],
+['Vindemiatrix',13.0362,10.9592,2.85,0.96,'Virgo'],
+['Syrma',14.2669,-6.0011,4.08,0.40,'Virgo'],
+['Mu Vir',14.7161,-5.6581,3.88,0.39,'Virgo'],
+['Regulus',10.1395,11.9672,1.35,-0.11,'Leo'],
+['Denebola',11.8177,14.572,2.14,0.09,'Leo'],
+['Algieba',10.3328,19.8419,2.01,1.13,'Leo'],
+['Zosma',11.2353,20.5236,2.56,0.13,'Leo'],
+['Chertan',11.2353,15.4297,3.34,0.13,'Leo'],
+['Adhafera',10.1228,23.7453,3.44,0.29,'Leo'],
+['Ras Elased Aust',9.7641,23.7739,2.98,1.54,'Leo'],
+['Subra',9.6858,9.8919,3.52,0.25,'Leo'],
+['Praecipua',10.6267,34.2142,3.80,1.11,'Leo Minor'],
+['Cor Caroli',12.9338,38.3183,2.89,0.02,'Canes Venatici'],
+['Chara',12.5622,41.3569,4.26,0.59,'Canes Venatici'],
+['Alphecca',15.5781,26.7147,2.23,0.03,'Corona Borealis'],
+['Nusakan',15.4636,29.1069,3.68,0.38,'Corona Borealis'],
+['Gamma CrB',15.7122,26.2956,3.83,-0.10,'Corona Borealis'],
+['Gemma',15.5781,26.7147,2.23,0.03,'Corona Borealis'],
+['Boötes Arcturus',14.261,19.1822,-0.05,1.23,'Boötes'],
+['Nekkar',15.0325,40.3903,3.49,0.97,'Boötes'],
+['Seginus',14.5344,38.3103,3.03,-0.08,'Boötes'],
+['Muphrid',13.9114,18.3978,2.68,0.58,'Boötes'],
+['Izar',14.7497,27.0742,2.37,0.97,'Boötes'],
+['Alkalurops',15.2583,33.2992,4.31,0.75,'Boötes'],
+['Rho Boo',14.5308,30.3717,3.58,1.34,'Boötes'],
+['Merga',14.6997,46.0886,5.53,1.57,'Boötes'],
+['Alkaid',13.7923,49.3133,1.85,-0.19,'Ursa Major'],
+['Alioth',12.9004,55.9598,1.77,-0.02,'Ursa Major'],
+];
+
+// ── DSO CATALOG ──────────────────────────────────────
+// [name, RA_h, Dec_deg, type, Vmag, size_deg, desc, constellation, id]
+const DSOS=[
+['Orion Nebula',5.5836,-5.3911,'nebula',4.0,1.0,'The closest large star-forming region, 1,344 light-years away. New stars are being born here right now.','Orion','M42'],
+['Horsehead Nebula',5.6806,-2.4583,'dark_nebula',6.0,0.3,'Dark pillar of gas silhouetted against glowing background. 1,500 light-years away.','Orion','IC 434'],
+['Andromeda Galaxy',0.7122,41.2689,'galaxy',3.4,3.0,'2.537 million light-years away — our nearest large galactic neighbour. On a collision course with the Milky Way in 4.5 billion years.','Andromeda','M31'],
+['Triangulum Galaxy',1.5681,30.6597,'galaxy',5.7,1.0,'Third-largest member of our Local Group, 2.73 million light-years away.','Triangulum','M33'],
+['Pleiades',3.7833,24.1167,'cluster_open',1.6,2.0,'The Seven Sisters, 444 light-years away. Known since ancient times across virtually every human culture.','Taurus','M45'],
+['Crab Nebula',5.5758,22.015,'remnant',8.4,0.1,'Remnant of a supernova observed in 1054 AD. Contains a pulsar spinning 30 times per second.','Taurus','M1'],
+['Beehive Cluster',8.6667,19.9833,'cluster_open',3.7,1.5,'One of the nearest open clusters, 577 light-years away. Contains around 1,000 stars.','Cancer','M44'],
+['Perseus Double Cluster',2.3208,57.1333,'cluster_open',4.3,0.5,'Two young open clusters side by side — one of the finest sights in the sky.','Perseus','NGC 869'],
+['Hercules Cluster',16.6947,36.4611,'cluster_glob',5.8,0.28,'300,000 ancient stars, 22,000 light-years away.','Hercules','M13'],
+['Whirlpool Galaxy',13.4981,47.195,'galaxy',8.4,0.2,'Classic interacting spiral galaxy 23 million light-years away.','Canes Venatici','M51'],
+['Pinwheel Galaxy',14.0531,54.3489,'galaxy',7.9,0.35,'Face-on spiral galaxy 21 million light-years away.','Ursa Major','M101'],
+['Bode Galaxy',9.9258,69.0669,'galaxy',6.9,0.28,'One of the brightest galaxies in the northern sky, 11.7 million light-years away.','Ursa Major','M81'],
+['Cigar Galaxy',9.9258,69.6803,'galaxy',8.4,0.4,'Starburst galaxy with dramatic hydrogen gas filaments.','Ursa Major','M82'],
+['Ring Nebula',18.8928,33.0281,'planetary_neb',8.8,0.05,'Shell of gas from a dying star 2,300 light-years away. A stellar end-of-life made visible.','Lyra','M57'],
+['Dumbbell Nebula',19.9944,22.7203,'planetary_neb',7.4,0.12,'The first planetary nebula ever discovered, in 1764.','Vulpecula','M27'],
+['Lagoon Nebula',18.0631,-24.3833,'nebula',6.0,0.8,'Giant stellar nursery 4,100 light-years away. Visible to the naked eye.','Sagittarius','M8'],
+['Trifid Nebula',18.0428,-22.9717,'nebula',6.3,0.3,'Three-lobed nebula divided by dark dust lanes.','Sagittarius','M20'],
+['Omega Nebula',18.3369,-16.1761,'nebula',6.0,0.5,'One of the brightest star-forming regions, 5,500 light-years away.','Sagittarius','M17'],
+['Eagle Nebula',18.3131,-13.7822,'nebula',6.0,0.5,'Home to the famous Pillars of Creation. 7,000 light-years away.','Serpens','M16'],
+['North America Nebula',20.9844,44.5167,'nebula',4.0,2.0,'Emission nebula whose shape resembles North America.','Cygnus','NGC 7000'],
+['Veil Nebula',20.9378,31.7167,'remnant',7.0,1.5,'Supernova remnant formed 10,000 years ago.','Cygnus','NGC 6992'],
+['Globular M15',21.4997,12.1669,'cluster_glob',6.2,0.2,'One of the most densely packed globular clusters, 33,600 light-years away.','Pegasus','M15'],
+['Globular M2',21.5581,-0.8233,'cluster_glob',6.5,0.22,'One of the largest globular clusters, 37,500 light-years away.','Aquarius','M2'],
+['Sombrero Galaxy',12.6661,-11.6231,'galaxy',8.0,0.2,'Distinctive hat-shaped spiral galaxy 28 million light-years away.','Virgo','M104'],
+['Virgo Galaxy M87',12.5136,12.3911,'galaxy',8.6,0.12,'Giant elliptical galaxy — its black hole was the first ever directly imaged.','Virgo','M87'],
+['Globular M3',13.7036,28.3769,'cluster_glob',6.2,0.28,'500,000 stars at 33,900 light-years away.','Canes Venatici','M3'],
+['Globular M5',15.3094,2.0811,'cluster_glob',5.6,0.3,'One of the oldest globular clusters — 13 billion years old.','Serpens','M5'],
+['Globular M4',16.3931,-26.5253,'cluster_glob',5.6,0.6,'The nearest globular cluster at 7,200 light-years.','Scorpius','M4'],
+['Butterfly Cluster',17.6294,-32.2139,'cluster_open',4.2,0.5,'Rich open cluster resembling butterfly wings.','Scorpius','M6'],
+['Ptolemy Cluster',17.9017,-34.8133,'cluster_open',3.3,0.5,'First mentioned by Ptolemy around AD 130.','Scorpius','M7'],
+['Omega Centauri',13.4467,-47.4783,'cluster_glob',3.9,1.0,'The largest globular cluster in the Milky Way.','Centaurus','NGC 5139'],
+['Heart Nebula',2.55,61.45,'nebula',6.5,1.5,'Emission nebula 7,500 light-years away.','Cassiopeia','IC 1805'],
+['Globular M22',18.6069,-23.9039,'cluster_glob',5.1,0.32,'One of the nearest and brightest globular clusters.','Sagittarius','M22'],
+['Sculptor Galaxy',0.7317,-25.2881,'galaxy',7.1,0.5,'Starburst galaxy 11.4 million light-years away.','Sculptor','NGC 253'],
+['Eta Carinae Nebula',10.75,-59.8667,'nebula',3.0,2.0,'One of the largest nebulae visible to the naked eye.','Carina','NGC 3372'],
+['Running Man Nebula',5.5919,-4.8833,'nebula',9.0,0.3,'Reflection nebula adjacent to the Orion Nebula.','Orion','NGC 1977'],
+['Crescent Nebula',20.2044,38.3556,'nebula',7.4,0.3,'Shell of gas from a Wolf-Rayet star.','Cygnus','NGC 6888'],
+['Flame Nebula',5.68,-1.8333,'nebula',5.0,0.5,'Glowing emission nebula adjacent to Alnitak.','Orion','NGC 2024'],
+['Sagittarius Star Cloud',18.25,-18.5,'cluster_open',4.6,2.5,'A window into the galactic center.','Sagittarius','M24'],
+['Globular M13 Her',16.6947,36.4611,'cluster_glob',5.8,0.28,'Great Globular Cluster in Hercules.','Hercules','M13'],
+['Pacman Nebula',0.4833,56.6167,'nebula',7.4,0.7,'Emission nebula 9,200 light-years away.','Cassiopeia','NGC 281'],
+['Bubble Nebula',23.3458,61.2,'nebula',10.0,0.17,'Sphere of gas blown by a massive star.','Cassiopeia','NGC 7635'],
+['Wild Duck Cluster',18.8531,-6.2667,'cluster_open',5.8,0.23,'One of the richest open clusters, 2,900 stars.','Scutum','M11'],
+['Jewel Box',12.5286,-60.2,'cluster_open',4.2,0.17,'One of the youngest known clusters, only 14 million years old.','Crux','NGC 4755'],
+['Leo Triplet M66',11.3369,12.9914,'galaxy',8.9,0.15,'Part of the Leo Triplet interacting galaxies.','Leo','M66'],
+['Tarantula Nebula',5.6458,-69.1,'nebula',8.0,1.5,'Most active star-forming region in our Local Group.','Dorado','NGC 2070'],
+['Witch Head Nebula',5.1833,-7.2333,'nebula',7.0,1.5,'Reflection nebula illuminated by Rigel.','Eridanus','IC 2118'],
+['Globular M92',17.2881,43.1356,'cluster_glob',6.4,0.2,'One of the oldest known globular clusters.','Hercules','M92'],
+['Globular M10',16.9519,-4.1006,6.6,0.2,'Rich globular cluster 14,300 light-years away.','Ophiuchus','M10'],
+['Globular M12',16.7872,-1.9478,'cluster_glob',6.7,0.25,'Loose globular cluster 16,000 light-years away.','Ophiuchus','M12'],
+];
+
+// ── CONSTELLATION LINES ──────────────────────────────
+const CON_LINES={
+'Orion':[['Betelgeuse','Bellatrix'],['Betelgeuse','Alnilam'],['Bellatrix','Mintaka'],['Mintaka','Alnilam'],['Alnilam','Alnitak'],['Alnitak','Saiph'],['Saiph','Rigel'],['Rigel','Mintaka']],
+'Ursa Major':[['Dubhe','Merak'],['Merak','Phecda'],['Phecda','Megrez'],['Megrez','Dubhe'],['Megrez','Alioth'],['Alioth','Mizar'],['Mizar','Alkaid']],
+'Cassiopeia':[['Caph','Schedir'],['Schedir','Navi'],['Navi','Ruchbah'],['Ruchbah','Navi']],
+['Lyra']:[['Vega','Sheliak'],['Sheliak','Sulafat'],['Sulafat','Vega']],
+'Cygnus':[['Deneb','Sadr'],['Sadr','Albireo'],['Sadr','Gienah'],['Sadr','Delta Cyg']],
+'Aquila':[['Altair','Tarazed'],['Altair','Alshain']],
+'Pegasus':[['Markab','Scheat'],['Scheat','Alpheratz'],['Alpheratz','Algenib'],['Algenib','Markab']],
+'Andromeda':[['Alpheratz','Mirach'],['Mirach','Almach']],
+'Boötes':[['Arcturus','Nekkar'],['Arcturus','Seginus'],['Arcturus','Muphrid'],['Arcturus','Izar'],['Nekkar','Seginus']],
+};
+
+// ── PLANETS ─────────────────────────────────────────
+const PLANETS=[
+{name:'Mercury',col:'#bbbbbb',r:2,a:0.387,e:0.206,ml:252.25,lp:77.46,period:87.97,desc:'The innermost planet. A day on Mercury lasts 59 Earth days.'},
+{name:'Venus',col:'#ffe680',r:3.5,a:0.723,e:0.007,ml:181.98,lp:131.77,period:224.7,desc:'The brightest planet. Its thick CO₂ atmosphere keeps it at 465°C.'},
+{name:'Mars',col:'#ff6633',r:2.5,a:1.524,e:0.093,ml:355.43,lp:336.04,period:686.97,desc:'The Red Planet, home to the tallest volcano in the solar system.'},
+{name:'Jupiter',col:'#ffcc99',r:5,a:5.203,e:0.049,ml:34.40,lp:14.33,period:4332.59,desc:'The largest planet — all others could fit inside it.'},
+{name:'Saturn',col:'#ffee99',r:4.5,a:9.537,e:0.057,ml:49.94,lp:92.43,period:10759.22,desc:'The ringed wonder. Saturn\'s rings will disappear in 100 million years.'},
+{name:'Uranus',col:'#99ddff',r:3,a:19.19,e:0.046,ml:313.23,lp:170.96,period:30688.5,desc:'The ice giant that rotates on its side at 98°.'},
+{name:'Neptune',col:'#4466ff',r:3,a:30.07,e:0.009,ml:304.88,lp:44.97,period:60182.0,desc:'The windiest planet with storms reaching 2,100 km/h.'},
+];
+
+// ── STAR DESCRIPTIONS ────────────────────────────────
+const STAR_DESC={
+'Sirius':'The brightest star in our night sky at 8.6 light-years away. Its blue-white light comes from a surface temperature of 9,940 K — twice as hot as our Sun.',
+'Betelgeuse':'A red supergiant 700 light-years away. So enormous it would extend past Jupiter if placed at the Sun. Expected to explode as a supernova within 100,000 years.',
+'Rigel':'A blue supergiant 860 light-years away, radiating 120,000 times more energy than our Sun.',
+'Vega':'Part of the Summer Triangle, 25 light-years away. Will replace Polaris as the North Star in 13,727 years.',
+'Arcturus':'The brightest northern star, 37 light-years away. A red giant 25 times larger than the Sun.',
+'Capella':'Actually four stars in two binary pairs orbiting each other, 43 light-years away.',
+['Procyon']:'A yellow-white star just 11.46 light-years away, making it the 7th nearest star system to Earth.',
+'Altair':'Spinning so fast it is visibly flattened at its poles. 17 light-years away.',
+'Aldebaran':'The fiery eye of Taurus, a red giant 65 light-years away. Follows the Pleiades across the sky.',
+'Spica':'Actually two massive stars orbiting so close they are pulled into egg shapes, 250 light-years away.',
+'Antares':'Heart of Scorpius — a red supergiant so vast it would engulf Mars if at the Sun.',
+'Deneb':'One of the most luminous stars known — 200,000 times the Sun\'s output despite being 2,600 light-years away.',
+'Polaris':'The North Star, within 1° of the celestial north pole. Has guided navigators for millennia.',
+'Regulus':'A rapidly spinning star in Leo that is flattened at its poles due to rotation speed.',
+'Fomalhaut':'A young star with a debris disk — direct evidence of planet formation. 25 light-years away.',
+};
+
+// ── ASTRONOMY ────────────────────────────────────────
+const D2R=Math.PI/180, R2D=180/Math.PI;
+let LAT=37.7,LON=-2.1;
+
+function jd(){return Date.now()/86400000+2440587.5}
+function gmst(j){return((280.46061837+360.98564736629*(j-2451545))%360+360)%360}
+function lst(j,lon){return((gmst(j)+lon)%360+360)%360}
+
+function toAltAz(ra_h,dec_d){
+  const j=jd(),ha=lst(j,LON)-ra_h*15;
+  const haR=ha*D2R,decR=dec_d*D2R,latR=LAT*D2R;
+  const sinA=Math.sin(decR)*Math.sin(latR)+Math.cos(decR)*Math.cos(latR)*Math.cos(haR);
+  const alt=Math.asin(Math.max(-1,Math.min(1,sinA)))*R2D;
+  const cosAz=(Math.sin(decR)-Math.sin(latR)*sinA)/(Math.cos(latR)*Math.cos(alt*D2R));
+  let az=Math.acos(Math.max(-1,Math.min(1,cosAz)))*R2D;
+  if(Math.sin(haR)>0) az=360-az;
+  return{alt,az};
+}
+
+function planetPos(p){
+  const j=jd();
+  const M=((p.ml-p.lp)+360/p.period*(j-2451545))%360;
+  const Mr=M*D2R,C=(2*p.e-p.e**3/4)*Math.sin(Mr)+(5/4*p.e**2)*Math.sin(2*Mr);
+  const nu=M+C*R2D,lEcl=(nu+p.lp)%360;
+  const eps=23.439,lR=lEcl*D2R,eR=eps*D2R;
+  const ra_r=Math.atan2(Math.sin(lR)*Math.cos(eR),Math.cos(lR));
+  const dec_r=Math.asin(Math.sin(eR)*Math.sin(lR));
+  return{ra:((ra_r*R2D%360+360)%360)/15,dec:dec_r*R2D};
+}
+
+function moonPos(){
+  const j=jd(),L=(218.316+13.176396*(j-2451545))%360;
+  const M=(134.963+13.064993*(j-2451545))%360*D2R;
+  const F=(93.272+13.22935*(j-2451545))%360*D2R;
+  const lo=L+6.289*Math.sin(M),la=5.128*Math.sin(F);
+  const eps=23.439,lR=lo*D2R,laR=la*D2R,eR=eps*D2R;
+  const ra_r=Math.atan2(Math.sin(lR)*Math.cos(eR)-Math.tan(laR)*Math.sin(eR),Math.cos(lR));
+  const dec_r=Math.asin(Math.sin(laR)*Math.cos(eR)+Math.cos(laR)*Math.sin(eR)*Math.sin(lR));
+  const sM=(357.529+0.9856*(j-2451545))%360*D2R;
+  const sLon=280.459+0.985647*(j-2451545)+1.915*Math.sin(sM);
+  const phase=((lo-sLon)%360+360)%360/360;
+  return{ra:((ra_r*R2D%360+360)%360)/15,dec:dec_r*R2D,phase};
+}
+
+function phaseName(p){
+  if(p<0.02||p>0.98)return'New Moon';
+  if(p<0.23)return'Waxing Crescent';
+  if(p<0.27)return'First Quarter';
+  if(p<0.48)return'Waxing Gibbous';
+  if(p<0.52)return'Full Moon';
+  if(p<0.73)return'Waning Gibbous';
+  if(p<0.77)return'Last Quarter';
+  return'Waning Crescent';
+}
+
+// B-V to RGB
+function bvToRgb(bv){
+  if(bv<-0.25)return new THREE.Color(0.8,0.88,1.0);
+  if(bv<0.0) return new THREE.Color(0.88,0.93,1.0);
+  if(bv<0.3) return new THREE.Color(1.0,1.0,1.0);
+  if(bv<0.58)return new THREE.Color(1.0,0.98,0.9);
+  if(bv<1.0) return new THREE.Color(1.0,0.88,0.65);
+  if(bv<1.5) return new THREE.Color(1.0,0.72,0.38);
+  return new THREE.Color(1.0,0.55,0.2);
+}
+
+// ── THREE.JS SETUP ────────────────────────────────────
+let renderer,scene,camera;
+let W=window.innerWidth,H=window.innerHeight;
+let vAz=180,vAlt=45,zoom=1.0;
+let arMode=false;
+
+// View state
+let panning=false,lx=0,ly=0,pinch=0,moved=false,ts=0,tsx=0,tsy=0;
+
+// Scene objects
+let starPoints,bgPoints,mwPoints,dsoGroup,lineGroup,planetGroup;
+let moonMesh;
+
+// Star screen positions for tap detection
+let starScreenPos=[];
+let dsoScreenPos=[];
+let planetScreenPos=[];
+let moonScreenPos={};
+
+let selectedObj=null;
+
+function initThree(){
+  renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:true,alpha:false});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer.setSize(W,H);
+  renderer.setClearColor(0x000000,1);
+
+  scene=new THREE.Scene();
+  camera=new THREE.OrthographicCamera(-W/2,W/2,H/2,-H/2,0.1,1000);
+  camera.position.z=10;
+
+  buildScene();
+  buildMilkyWay();
+  buildBackground();
+
+  render();
+
+  setTimeout(()=>{
+    const l=document.getElementById('load');
+    l.classList.add('hide');
+    setTimeout(()=>l.style.display='none',800);
+  },300);
+}
+
+// Projection: Alt/Az → screen X/Y
+function project(alt,az){
+  if(alt<-15) return null;
+  const dAz=((az-vAz+540)%360)-180;
+  const dAlt=alt-vAlt;
+  const scale=Math.min(W,H)*0.46/(90/zoom);
+  return{x:dAz*scale,y:dAlt*scale};
+}
+
+function buildMilkyWay(){
+  // Milky Way band as many faint stars
+  const MW_BAND=[
+    [6.0,-50],[7.0,-30],[8.0,-10],[9.5,10],[11.0,30],[13.0,50],[15.0,65],
+    [17.0,50],[18.0,25],[18.3,5],[18.5,-10],[19.0,-30],[20.0,-50],
+    [22.0,-55],[0.0,-45],[2.0,-42],[4.0,-44],[5.5,-48],[6.0,-50],
+  ];
+
+  const N=3000;
+  const pos=new Float32Array(N*3);
+  const col=new Float32Array(N*3);
+
+  for(let i=0;i<N;i++){
+    // Random point along MW band
+    const t=(i/N)*MW_BAND.length;
+    const i0=Math.floor(t)%MW_BAND.length;
+    const i1=(i0+1)%MW_BAND.length;
+    const f=t-Math.floor(t);
+    const ra=MW_BAND[i0][0]+(MW_BAND[i1][0]-MW_BAND[i0][0])*f;
+    const dec=MW_BAND[i0][1]+(MW_BAND[i1][1]-MW_BAND[i0][1])*f;
+    const spread=(Math.random()-0.5)*18;
+    const spreadAlt=(Math.random()-0.5)*12;
+
+    pos[i*3]=ra+spread;
+    pos[i*3+1]=dec+spreadAlt;
+    pos[i*3+2]=0;
+
+    const bright=0.08+Math.random()*0.18;
+    col[i*3]=bright*0.85;
+    col[i*3+1]=bright*0.9;
+    col[i*3+2]=bright;
+  }
+
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+
+  const mat=new THREE.PointsMaterial({
+    size:1.2,vertexColors:true,transparent:true,opacity:0.55,sizeAttenuation:false
+  });
+
+  mwPoints=new THREE.Points(geo,mat);
+  mwPoints.userData.type='milkyway';
+  scene.add(mwPoints);
+}
+
+function buildBackground(){
+  const N=2500;
+  const pos=new Float32Array(N*3);
+  const col=new Float32Array(N*3);
+  const sz=new Float32Array(N);
+
+  for(let i=0;i<N;i++){
+    const s1=Math.sin(i*127.1)*0.5+0.5;
+    const s2=Math.sin(i*311.7)*0.5+0.5;
+    const s3=Math.sin(i*74.3)*0.5+0.5;
+    pos[i*3]=s1*360;
+    pos[i*3+1]=s2*85+(s3-0.5)*20;
+    pos[i*3+2]=0;
+    const b=0.1+s3*0.25;
+    col[i*3]=b;col[i*3+1]=b;col[i*3+2]=b*1.05;
+    sz[i]=s3*1.2+0.3;
+  }
+
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+
+  const mat=new THREE.PointsMaterial({size:1.0,vertexColors:true,sizeAttenuation:false});
+  bgPoints=new THREE.Points(geo,mat);
+  bgPoints.userData.type='bg';
+  scene.add(bgPoints);
+}
+
+// Star vertex shader — beautiful gaussian disks
+const starVS=`
+attribute float starSize;
+attribute vec3 starColor;
+varying vec3 vColor;
+void main(){
+  vColor=starColor;
+  vec4 mv=modelViewMatrix*vec4(position,1.0);
+  gl_PointSize=starSize;
+  gl_Position=projectionMatrix*mv;
+}`;
+
+const starFS=`
+varying vec3 vColor;
+void main(){
+  vec2 c=gl_PointCoord-vec2(0.5);
+  float r=length(c)*2.0;
+  float a=exp(-r*r*3.0);
+  if(a<0.02) discard;
+  gl_FragColor=vec4(vColor,a);
+}`;
+
+function buildScene(){
+  // Named stars
+  const N=STARS.length;
+  const pos=new Float32Array(N*3);
+  const col=new Float32Array(N*3);
+  const sz=new Float32Array(N);
+
+  for(let i=0;i<N;i++){
+    const s=STARS[i];
+    pos[i*3]=s[1]*15; // RA as angle (will be converted in update)
+    pos[i*3+1]=s[2];  // Dec
+    pos[i*3+2]=0;
+    const c=bvToRgb(s[4]);
+    col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+    sz[i]=Math.max(2,Math.min(18,(5.5-s[3])*2.2*Math.sqrt(zoom)));
+  }
+
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('starColor',new THREE.BufferAttribute(col,3));
+  geo.setAttribute('starSize',new THREE.BufferAttribute(sz,1));
+
+  const mat=new THREE.ShaderMaterial({
+    vertexShader:starVS,fragmentShader:starFS,
+    transparent:true,depthWrite:false,
+  });
+
+  starPoints=new THREE.Points(geo,mat);
+  scene.add(starPoints);
+
+  // DSOs
+  dsoGroup=new THREE.Group();
+  scene.add(dsoGroup);
+
+  // Constellation lines
+  lineGroup=new THREE.Group();
+  scene.add(lineGroup);
+
+  // Planets
+  planetGroup=new THREE.Group();
+  scene.add(planetGroup);
+
+  updatePositions();
+}
+
+function dsoColor(type){
+  switch(type){
+    case 'galaxy':return 0xffaa44;
+    case 'nebula':return 0x44aaff;
+    case 'remnant':return 0xff6666;
+    case 'planetary_neb':return 0x44ffaa;
+    case 'dark_nebula':return 0x555555;
+    case 'cluster_open':return 0xffff88;
+    case 'cluster_glob':return 0xffcc88;
+    default:return 0xffffff;
+  }
+}
+
+function updatePositions(){
+  const starPos=starPoints.geometry.attributes.position;
+  const starSz=starPoints.geometry.attributes.starSize;
+
+  starScreenPos=[];
+
+  for(let i=0;i<STARS.length;i++){
+    const s=STARS[i];
+    const pos=toAltAz(s[1],s[2]);
+    const sp=project(pos.alt,pos.az);
+
+    if(sp && pos.alt>-5){
+      starPos.setXYZ(i,sp.x,sp.y,0);
+      starSz.setX(i,Math.max(2,Math.min(22,(5.5-s[3])*2.2*Math.sqrt(zoom))));
+      starScreenPos.push({i,x:sp.x,y:sp.y,star:s,pos,sz:starSz.getX(i)});
+    } else {
+      starPos.setXYZ(i,99999,99999,0);
+    }
+  }
+  starPos.needsUpdate=true;
+  starSz.needsUpdate=true;
+
+  // Milky Way update
+  const mwPos=mwPoints.geometry.attributes.position;
+  const MW_BAND=[[6.0,-50],[7.0,-30],[8.0,-10],[9.5,10],[11.0,30],[13.0,50],[15.0,65],[17.0,50],[18.0,25],[18.3,5],[18.5,-10],[19.0,-30],[20.0,-50],[22.0,-55],[0.0,-45],[2.0,-42],[4.0,-44],[5.5,-48],[6.0,-50]];
+  const N=mwPos.count;
+  for(let i=0;i<N;i++){
+    const t=(i/N)*MW_BAND.length;
+    const i0=Math.floor(t)%MW_BAND.length;
+    const i1=(i0+1)%MW_BAND.length;
+    const f=t-Math.floor(t);
+    const ra=MW_BAND[i0][0]+(MW_BAND[i1][0]-MW_BAND[i0][0])*f;
+    const dec=MW_BAND[i0][1]+(MW_BAND[i1][1]-MW_BAND[i0][1])*f;
+    const spread=Math.sin(i*17.3)*9;
+    const spreadA=Math.sin(i*23.7)*6;
+    const p=toAltAz(ra+spread/15,dec+spreadA);
+    const sp=project(p.alt,p.az);
+    if(sp)mwPos.setXYZ(i,sp.x,sp.y,0);
+    else mwPos.setXYZ(i,99999,99999,0);
+  }
+  mwPos.needsUpdate=true;
+
+  // Background stars
+  const bgPos=bgPoints.geometry.attributes.position;
+  for(let i=0;i<bgPos.count;i++){
+    const s1=Math.sin(i*127.1)*0.5+0.5;
+    const s2=Math.sin(i*311.7)*0.5+0.5;
+    const ra=s1*24;
+    const dec=s2*170-85;
+    const p=toAltAz(ra,dec);
+    const sp=project(p.alt,p.az);
+    if(sp)bgPos.setXYZ(i,sp.x,sp.y,0);
+    else bgPos.setXYZ(i,99999,99999,0);
+  }
+  bgPos.needsUpdate=true;
+
+  // DSOs
+  while(dsoGroup.children.length) dsoGroup.remove(dsoGroup.children[0]);
+  dsoScreenPos=[];
+
+  DSOS.forEach((dso,idx)=>{
+    const [name,ra,dec,type,vmag,sz_d,desc,con,id]=dso;
+    const pos=toAltAz(ra,dec);
+    if(pos.alt<-5) return;
+    const sp=project(pos.alt,pos.az);
+    if(!sp) return;
+
+    const pxSz=Math.max(8,sz_d*Math.min(W,H)*0.46/90*zoom*0.4);
+    const col=new THREE.Color(dsoColor(type));
+    const mat=new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.75,linewidth:1});
+
+    let mesh;
+    if(type==='galaxy'){
+      const pts=[];
+      for(let a=0;a<=64;a++){
+        const angle=a/64*Math.PI*2;
+        pts.push(new THREE.Vector3(sp.x+Math.cos(angle)*pxSz,sp.y+Math.sin(angle)*pxSz*0.55,0));
+      }
+      const geo=new THREE.BufferGeometry().setFromPoints(pts);
+      mesh=new THREE.Line(geo,mat);
+    } else if(type==='cluster_open'){
+      const pts=[];
+      for(let a=0;a<=32;a++){
+        const angle=a/32*Math.PI*2;
+        pts.push(new THREE.Vector3(sp.x+Math.cos(angle)*pxSz,sp.y+Math.sin(angle)*pxSz,0));
+      }
+      const geo=new THREE.BufferGeometry().setFromPoints(pts);
+      const dashedMat=new THREE.LineDashedMaterial({color:col,transparent:true,opacity:0.75,dashSize:4,gapSize:3});
+      mesh=new THREE.Line(geo,dashedMat);
+      mesh.computeLineDistances();
+    } else if(type==='cluster_glob'){
+      const pts1=[],pts2=[];
+      for(let a=0;a<=32;a++){const ag=a/32*Math.PI*2;pts1.push(new THREE.Vector3(sp.x+Math.cos(ag)*pxSz,sp.y+Math.sin(ag)*pxSz,0));}
+      pts2.push(new THREE.Vector3(sp.x-pxSz,sp.y,0),new THREE.Vector3(sp.x+pxSz,sp.y,0));
+      pts2.push(new THREE.Vector3(sp.x,sp.y-pxSz,0),new THREE.Vector3(sp.x,sp.y+pxSz,0));
+      const g=new THREE.Group();
+      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts1),mat));
+      g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts2),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.35})));
+      mesh=g;
+    } else if(type==='planetary_neb'){
+      const pts1=[],pts2=[];
+      for(let a=0;a<=32;a++){const ag=a/32*Math.PI*2;pts1.push(new THREE.Vector3(sp.x+Math.cos(ag)*pxSz*.5,sp.y+Math.sin(ag)*pxSz*.5,0));}
+      for(let a=0;a<=32;a++){const ag=a/32*Math.PI*2;pts2.push(new THREE.Vector3(sp.x+Math.cos(ag)*pxSz*.8,sp.y+Math.sin(ag)*pxSz*.8,0));}
+      const g=new THREE.Group();
+      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts1),mat));
+      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts2),new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.3})));
+      mesh=g;
+    } else {
+      // nebula / remnant / dark
+      const h=pxSz,s2=pxSz*0.5;
+      const pts=[
+        new THREE.Vector3(sp.x-s2,sp.y-s2,0),new THREE.Vector3(sp.x+s2,sp.y-s2,0),
+        new THREE.Vector3(sp.x+s2,sp.y+s2,0),new THREE.Vector3(sp.x-s2,sp.y+s2,0),
+        new THREE.Vector3(sp.x-s2,sp.y-s2,0),
+      ];
+      const dashedMat=new THREE.LineDashedMaterial({color:col,transparent:true,opacity:0.7,dashSize:3,gapSize:3});
+      mesh=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),dashedMat);
+      mesh.computeLineDistances();
+    }
+
+    if(mesh){
+      dsoGroup.add(mesh);
+      dsoScreenPos.push({x:sp.x,y:sp.y,dso,pos,pxSz});
+    }
+
+    // DSO label for bright ones
+    if(vmag<8&&zoom>0.7){
+      const canvas2=document.createElement('canvas');
+      canvas2.width=120;canvas2.height=24;
+      const ctx=canvas2.getContext('2d');
+      ctx.fillStyle='rgba(255,255,255,0.55)';
+      ctx.font='10px -apple-system,sans-serif';
+      ctx.fillText(id||name,2,16);
+      const tex=new THREE.CanvasTexture(canvas2);
+      const sm=new THREE.SpriteMaterial({map:tex,transparent:true});
+      const sprite=new THREE.Sprite(sm);
+      sprite.position.set(sp.x+pxSz+6,sp.y,1);
+      sprite.scale.set(60,12,1);
+      dsoGroup.add(sprite);
+    }
+  });
+
+  // Constellation lines
+  while(lineGroup.children.length) lineGroup.remove(lineGroup.children[0]);
+  const starMap={};
+  STARS.forEach(s=>starMap[s[0]]=s);
+  const lmat=new THREE.LineBasicMaterial({color:0x1a4dcc,transparent:true,opacity:0.18,linewidth:1});
+
+  Object.values(CON_LINES).forEach(lines=>{
+    lines.forEach(([n1,n2])=>{
+      const s1=starMap[n1],s2=starMap[n2];
+      if(!s1||!s2) return;
+      const p1=toAltAz(s1[1],s1[2]),p2=toAltAz(s2[1],s2[2]);
+      const sp1=project(p1.alt,p1.az),sp2=project(p2.alt,p2.az);
+      if(!sp1||!sp2) return;
+      if(p1.alt<-5||p2.alt<-5) return;
+      const geo=new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(sp1.x,sp1.y,0),
+        new THREE.Vector3(sp2.x,sp2.y,0)
+      ]);
+      lineGroup.add(new THREE.Line(geo,lmat));
+    });
+  });
+
+  // Planets
+  while(planetGroup.children.length) planetGroup.remove(planetGroup.children[0]);
+  planetScreenPos=[];
+
+  PLANETS.forEach(p=>{
+    const coords=planetPos(p);
+    const pos=toAltAz(coords.ra,coords.dec);
+    if(pos.alt<-5) return;
+    const sp=project(pos.alt,pos.az);
+    if(!sp) return;
+
+    const sz=p.r*Math.sqrt(zoom);
+    const col=new THREE.Color(p.col);
+
+    // Glow
+    const glowGeo=new THREE.CircleGeometry(sz*2.5,16);
+    const glowMat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.15});
+    const glow=new THREE.Mesh(glowGeo,glowMat);
+    glow.position.set(sp.x,sp.y,0);
+    planetGroup.add(glow);
+
+    // Planet disk
+    const geo=new THREE.CircleGeometry(sz,16);
+    const mat=new THREE.MeshBasicMaterial({color:col});
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set(sp.x,sp.y,0);
+    planetGroup.add(mesh);
+
+    // Label
+    const canvas2=document.createElement('canvas');
+    canvas2.width=100;canvas2.height=20;
+    const ctx=canvas2.getContext('2d');
+    ctx.fillStyle='rgba(255,255,255,0.85)';
+    ctx.font='11px -apple-system,sans-serif';
+    ctx.fillText(p.name,2,14);
+    const tex=new THREE.CanvasTexture(canvas2);
+    const sm=new THREE.SpriteMaterial({map:tex,transparent:true});
+    const sprite=new THREE.Sprite(sm);
+    sprite.position.set(sp.x+sz+6,sp.y,1);
+    sprite.scale.set(50,10,1);
+    planetGroup.add(sprite);
+
+    planetScreenPos.push({x:sp.x,y:sp.y,planet:p,pos,sz});
+  });
+
+  // Moon
+  updateMoon();
+
+  // Star labels
+  buildStarLabels();
+}
+
+function updateMoon(){
+  const existingMoon=scene.getObjectByName('moon');
+  if(existingMoon) scene.remove(existingMoon);
+
+  const m=moonPos();
+  const pos=toAltAz(m.ra,m.dec);
+  if(pos.alt<-5){moonScreenPos={};return;}
+  const sp=project(pos.alt,pos.az);
+  if(!sp){moonScreenPos={};return;}
+
+  const mr=10*Math.sqrt(zoom);
+  const g=new THREE.Group();
+  g.name='moon';
+
+  // Glow
+  const glowGeo=new THREE.CircleGeometry(mr*2.5,32);
+  const glowMat=new THREE.MeshBasicMaterial({color:0xffffe0,transparent:true,opacity:0.12});
+  g.add(new THREE.Mesh(glowGeo,glowMat));
+
+  // Bright part
+  const moonGeo=new THREE.CircleGeometry(mr,32);
+  const moonMat=new THREE.MeshBasicMaterial({color:0xe8e0d0});
+  const moon=new THREE.Mesh(moonGeo,moonMat);
+  g.add(moon);
+
+  // Dark part (phase)
+  const phase=m.phase;
+  const offset=mr*Math.cos(phase*Math.PI*2);
+  const darkGeo=new THREE.CircleGeometry(mr,32);
+  const darkMat=new THREE.MeshBasicMaterial({color:0x111111});
+  const dark=new THREE.Mesh(darkGeo,darkMat);
+  dark.position.x=phase<0.5?offset:-offset;
+  // clip to moon circle using renderOrder
+  dark.renderOrder=1;
+  g.add(dark);
+
+  // Label
+  const canvas2=document.createElement('canvas');
+  canvas2.width=160;canvas2.height=20;
+  const ctx=canvas2.getContext('2d');
+  ctx.fillStyle='rgba(255,255,220,0.85)';
+  ctx.font='11px -apple-system,sans-serif';
+  ctx.fillText('Moon · '+phaseName(phase),2,14);
+  const tex=new THREE.CanvasTexture(canvas2);
+  const sm=new THREE.SpriteMaterial({map:tex,transparent:true});
+  const sprite=new THREE.Sprite(sm);
+  sprite.position.set(mr+8,0,1);
+  sprite.scale.set(80,10,1);
+  g.add(sprite);
+
+  g.position.set(sp.x,sp.y,0);
+  scene.add(g);
+
+  moonScreenPos={x:sp.x,y:sp.y,phase:m.phase,sz:mr};
+}
+
+// Star name labels
+let labelGroup=new THREE.Group();
+function buildStarLabels(){
+  scene.remove(labelGroup);
+  labelGroup=new THREE.Group();
+
+  if(zoom<0.5) return;
+
+  starScreenPos.forEach(({x,y,star,sz})=>{
+    if(star[3]>2.8) return;
+    const canvas2=document.createElement('canvas');
+    canvas2.width=100;canvas2.height=18;
+    const ctx=canvas2.getContext('2d');
+    ctx.fillStyle=`rgba(255,255,255,${Math.min(0.85,0.4+zoom*0.3)})`;
+    ctx.font=`${Math.min(11,9*zoom)}px -apple-system,sans-serif`;
+    ctx.fillText(star[0],2,13);
+    const tex=new THREE.CanvasTexture(canvas2);
+    const sm=new THREE.SpriteMaterial({map:tex,transparent:true});
+    const sprite=new THREE.Sprite(sm);
+    sprite.position.set(x+sz/2+4,y,1);
+    sprite.scale.set(50,9,1);
+    labelGroup.add(sprite);
+  });
+
+  scene.add(labelGroup);
+}
+
+// ── HORIZON ──────────────────────────────────────────
+function buildHorizon(){
+  const existH=scene.getObjectByName('horizon');
+  if(existH) scene.remove(existH);
+  if(vAlt<5) return;
+
+  const sc=Math.min(W,H)*0.46/(90/zoom);
+  const hY=-vAlt*sc;
+
+  if(hY>H/2) return;
+
+  const geo=new THREE.PlaneGeometry(W*3,H*3);
+  const mat=new THREE.MeshBasicMaterial({color:0x0a1a06,transparent:true,opacity:0.35});
+  const mesh=new THREE.Mesh(geo,mat);
+  mesh.name='horizon';
+  mesh.position.set(0,hY-H*1.5,0);
+  scene.add(mesh);
+
+  // Horizon line
+  const pts=[new THREE.Vector3(-W*1.5,hY,0),new THREE.Vector3(W*1.5,hY,0)];
+  const lmat=new THREE.LineBasicMaterial({color:0x336633,transparent:true,opacity:0.2});
+  const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),lmat);
+  line.name='horizon';
+  scene.add(line);
+
+  // Compass points
+  const dirs=['N','NE','E','SE','S','SW','W','NW'];
+  const sc2=Math.min(W,H)*0.46/(90/zoom);
+  dirs.forEach((d,i)=>{
+    const az=i*45;
+    const dAz=((az-vAz+540)%360)-180;
+    const x=dAz*sc2;
+    if(Math.abs(x)>W*0.6) return;
+    const canvas2=document.createElement('canvas');
+    canvas2.width=24;canvas2.height=20;
+    const ctx=canvas2.getContext('2d');
+    ctx.fillStyle='rgba(77,255,145,0.7)';
+    ctx.font='bold 11px -apple-system,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(d,12,14);
+    const tex=new THREE.CanvasTexture(canvas2);
+    const sm=new THREE.SpriteMaterial({map:tex,transparent:true});
+    const sprite=new THREE.Sprite(sm);
+    sprite.name='horizon';
+    sprite.position.set(x,hY+14,1);
+    sprite.scale.set(16,12,1);
+    scene.add(sprite);
+  });
+}
+
+// ── RENDER LOOP ──────────────────────────────────────
+let frameCount=0;
+function render(){
+  requestAnimationFrame(render);
+  frameCount++;
+
+  // Update positions every few frames for performance
+  if(frameCount%3===0){
+    updatePositions();
+    buildHorizon();
+    updateTimeDisplay();
+  }
+
+  renderer.render(scene,camera);
+}
+
+function updateTimeDisplay(){
+  const n=new Date();
+  const h=n.getHours().toString().padStart(2,'0');
+  const m=n.getMinutes().toString().padStart(2,'0');
+  document.getElementById('td').textContent=`${h}:${m} · ${LAT.toFixed(1)}°${LAT>=0?'N':'S'}`;
+}
+
+// ── TOUCH/MOUSE HANDLING ─────────────────────────────
+const canvas3=document.getElementById('c');
+
+canvas3.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  if(e.touches.length===1){
+    panning=true;
+    lx=e.touches[0].clientX;ly=e.touches[0].clientY;
+    tsx=lx;tsy=ly;ts=Date.now();moved=false;
+  } else if(e.touches.length===2){
+    panning=false;
+    pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  }
+},{passive:false});
+
+canvas3.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(e.touches.length===1&&panning&&!arMode){
+    const dx=e.touches[0].clientX-lx,dy=e.touches[0].clientY-ly;
+    if(Math.abs(dx)+Math.abs(dy)>3) moved=true;
+    const sc=(90/zoom)/(Math.min(W,H)*0.46);
+    vAz=(vAz-dx*sc+360)%360;
+    vAlt=Math.max(-10,Math.min(88,vAlt+dy*sc));
+    lx=e.touches[0].clientX;ly=e.touches[0].clientY;
+  } else if(e.touches.length===2){
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    if(pinch>0) zoom=Math.max(0.3,Math.min(6,zoom*(d/pinch)));
+    pinch=d;moved=true;
+  }
+},{passive:false});
+
+canvas3.addEventListener('touchend',e=>{
+  e.preventDefault();
+  if(!moved&&e.changedTouches.length===1){
+    const x=e.changedTouches[0].clientX-W/2;
+    const y=-(e.changedTouches[0].clientY-H/2);
+    if(Date.now()-ts<300&&Math.hypot(x+W/2-tsx,y+H/2-tsy)<12){
+      handleTap(x,y);
+    }
+  }
+  panning=false;
+},{passive:false});
+
+function handleTap(x,y){
+  let best=null,bd=35;
+
+  // Stars
+  starScreenPos.forEach(s=>{
+    const d=Math.hypot(s.x-x,s.y-y);
+    const hit=Math.max(s.sz,14);
+    if(d<hit&&d<bd){bd=d;best={type:'star',data:s};}
+  });
+
+  // DSOs
+  dsoScreenPos.forEach(d=>{
+    const dist=Math.hypot(d.x-x,d.y-y);
+    if(dist<Math.max(d.pxSz*1.5,22)&&dist<bd){bd=dist;best={type:'dso',data:d};}
+  });
+
+  // Planets
+  planetScreenPos.forEach(p=>{
+    const d=Math.hypot(p.x-x,p.y-y);
+    if(d<28&&d<bd){bd=d;best={type:'planet',data:p};}
+  });
+
+  // Moon
+  if(moonScreenPos.x!==undefined){
+    const d=Math.hypot(moonScreenPos.x-x,moonScreenPos.y-y);
+    if(d<28&&d<bd){bd=d;best={type:'moon',data:moonScreenPos};}
+  }
+
+  if(best) showInfo(best);
+  else closeInfo();
+}
+
+// ── INFO PANEL ────────────────────────────────────────
+function showInfo(obj){
+  selectedObj=obj;
+  let type_l,name,sub,desc,stats=[];
+
+  if(obj.type==='star'){
+    const s=obj.data.star;
+    const [nm,ra,dec,vmag,bv,con]=s;
+    type_l='STAR · '+con.toUpperCase();
+    name=nm;
+    sub=`Magnitude ${vmag} · ${spectralType(bv)} · ${con}`;
+    desc=STAR_DESC[nm]||`A ${spectralType(bv)} star of magnitude ${vmag} in ${con}.`;
+    stats=[{l:'Magnitude',v:vmag.toFixed(2)},{l:'Spectral Type',v:spectralType(bv)},{l:'Altitude',v:obj.data.pos.alt.toFixed(1)+'°'},{l:'Azimuth',v:obj.data.pos.az.toFixed(0)+'°'}];
+  } else if(obj.type==='dso'){
+    const d=obj.data.dso;
+    const [nm,ra,dec,type,vmag,sz,dc,con,id]=d;
+    type_l=dsoTypeLabel(type)+' · '+con.toUpperCase();
+    name=nm;sub=(id?id+' · ':'')+`Magnitude ${vmag} · ${con}`;
+    desc=dc;
+    stats=[{l:'Type',v:dsoTypeLabel(type)},{l:'Magnitude',v:vmag.toFixed(1)},{l:'Size',v:sz+'°'},{l:'Altitude',v:obj.data.pos.alt.toFixed(1)+'°'}];
+  } else if(obj.type==='planet'){
+    const p=obj.data.planet;
+    type_l='PLANET · SOLAR SYSTEM';name=p.name;
+    sub=`Currently at ${obj.data.pos.alt.toFixed(1)}° altitude`;desc=p.desc;
+    stats=[{l:'Altitude',v:obj.data.pos.alt.toFixed(1)+'°'},{l:'Azimuth',v:obj.data.pos.az.toFixed(0)+'°'},{l:'Type',v:'Solar System Planet'}];
+  } else {
+    const ph=obj.data.phase;
+    type_l='NATURAL SATELLITE · EARTH';name='The Moon';
+    sub=phaseName(ph)+' · '+Math.round(Math.abs(Math.cos(ph*Math.PI*2))*100)+'% illuminated';
+    desc='Our nearest celestial neighbour at 384,400 km. The Moon\'s gravity creates our ocean tides and has stabilized Earth\'s axial tilt, making complex life possible.';
+    stats=[{l:'Phase',v:phaseName(ph)},{l:'Illumination',v:Math.round(Math.abs(Math.cos(ph*Math.PI*2))*100)+'%'},{l:'Distance',v:'~384,400 km'}];
+  }
+
+  document.getElementById('ip-t').textContent=type_l;
+  document.getElementById('ip-n').textContent=name;
+  document.getElementById('ip-s').textContent=sub;
+  document.getElementById('ip-d').textContent=desc;
+  document.getElementById('ip-st').innerHTML=stats.map(s=>`<div class="isc"><div class="isl">${s.l}</div><div class="isv">${s.v}</div></div>`).join('');
+  document.getElementById('info').classList.add('show');
+
+  rn('OBJECT_IDENTIFIED',{name,type:obj.type==='dso'?obj.data.dso[3]:obj.type,constellation:obj.type==='star'?obj.data.star[5]:(obj.type==='dso'?obj.data.dso[7]:''),description:desc});
+}
+
+function closeInfo(){document.getElementById('info').classList.remove('show');selectedObj=null;}
+
+function spectralType(bv){
+  if(bv<-0.3)return'O-type (blue)';
+  if(bv<0)return'B-type (blue-white)';
+  if(bv<0.3)return'A-type (white)';
+  if(bv<0.58)return'F-type (yellow-white)';
+  if(bv<1.0)return'G-type (yellow)';
+  if(bv<1.5)return'K-type (orange)';
+  return'M-type (red)';
+}
+
+function dsoTypeLabel(t){
+  return{galaxy:'Galaxy',nebula:'Emission Nebula',remnant:'Supernova Remnant',planetary_neb:'Planetary Nebula',dark_nebula:'Dark Nebula',cluster_open:'Open Cluster',cluster_glob:'Globular Cluster'}[t]||t;
+}
+
+// ── RN BRIDGE ────────────────────────────────────────
+function rn(ev,data){
+  try{if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(JSON.stringify({event:ev,data}));}catch(e){}
+}
+
+window.addEventListener('message',onMsg);document.addEventListener('message',onMsg);
+function onMsg(e){
+  try{
+    const m=JSON.parse(e.data);
+    if(m.type==='LOCATION'){LAT=m.lat;LON=m.lon;}
+    if(m.type==='COMPASS'&&arMode){vAz=m.azimuth;vAlt=Math.max(-10,Math.min(88,m.altitude));}
+    if(m.type==='AR_MODE'){arMode=m.enabled;document.getElementById('bAR').classList.toggle('on',arMode);document.getElementById('ar-bar').classList.toggle('show',arMode);}
+  }catch(e){}
+}
+
+// ── BUTTONS ──────────────────────────────────────────
+document.getElementById('ic').onclick=closeInfo;
+document.getElementById('bClose').onclick=closeInfo;
+
+document.getElementById('bAtlas').onclick=()=>{
+  if(!selectedObj) return;
+  let name=document.getElementById('ip-n').textContent;
+  let type=selectedObj.type==='dso'?selectedObj.data.dso[3]:selectedObj.type;
+  let desc=document.getElementById('ip-d').textContent;
+  let con=selectedObj.type==='star'?selectedObj.data.star[5]:(selectedObj.type==='dso'?selectedObj.data.dso[7]:'');
+  rn('ADD_TO_ATLAS',{name,type,constellation:con,description:desc,method:'skymap'});
+  const b=document.getElementById('bAtlas');
+  b.textContent='✓ Added!';b.style.background='#4dff91';
+  setTimeout(()=>{b.textContent='+ Add to Atlas';b.style.background='';},2000);
+};
+
+document.getElementById('bL').onclick=()=>{
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(p=>{
+      LAT=p.coords.latitude;LON=p.coords.longitude;
+      rn('LOCATION_SET',{lat:LAT,lon:LON});
+    });
+  }
+};
+
+document.getElementById('bT').onclick=()=>{
+  const items=[];
+  DSOS.forEach(d=>{
+    const pos=toAltAz(d[1],d[2]);
+    if(pos.alt>15&&d[4]<9) items.push({name:d[0],type:dsoTypeLabel(d[3]),alt:pos.alt,az:pos.az});
+  });
+  PLANETS.forEach(p=>{
+    const c=planetPos(p);
+    const pos=toAltAz(c.ra,c.dec);
+    if(pos.alt>10) items.push({name:p.name,type:'Planet',alt:pos.alt});
+  });
+  items.sort((a,b)=>b.alt-a.alt);
+  alert('TONIGHT:\n'+items.slice(0,8).map(i=>`${i.name} (${i.type}) — ${i.alt.toFixed(0)}° alt`).join('\n'));
+};
+
+document.getElementById('bAR').onclick=()=>{
+  arMode=!arMode;
+  document.getElementById('bAR').classList.toggle('on',arMode);
+  document.getElementById('ar-bar').classList.toggle('show',arMode);
+  rn('AR_TOGGLE',{enabled:arMode});
+};
+
+document.getElementById('bZI').onclick=()=>{zoom=Math.min(6,zoom*1.3);};
+document.getElementById('bZO').onclick=()=>{zoom=Math.max(0.3,zoom/1.3);};
+
+// ── RESIZE ───────────────────────────────────────────
+window.addEventListener('resize',()=>{
+  W=window.innerWidth;H=window.innerHeight;
+  renderer.setSize(W,H);
+  camera.left=-W/2;camera.right=W/2;camera.top=H/2;camera.bottom=-H/2;
+  camera.updateProjectionMatrix();
+});
+
+// ── INIT ─────────────────────────────────────────────
+if(navigator.geolocation){
+  navigator.geolocation.getCurrentPosition(p=>{
+    LAT=p.coords.latitude;LON=p.coords.longitude;
+    rn('LOCATION_SET',{lat:LAT,lon:LON});
+  },()=>{});
+}
+
+if(typeof THREE!=='undefined'){
+  initThree();
+} else {
+  document.getElementById('lt').textContent='Error: Three.js failed to load';
+}
+
+rn('MAP_READY',{version:'5.0-webgl'});
+</script>
+</body>
+</html>
