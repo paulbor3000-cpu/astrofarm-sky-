@@ -77,7 +77,7 @@ function rn(ev,data){try{if(window.ReactNativeWebView)window.ReactNativeWebView.
 window.addEventListener('message',onMsg);document.addEventListener('message',onMsg);
 
 let LAT=37.7,LON=-2.1,arMode=false,sel=null;
-let vAz=180,vAlt=45,zoom=1;
+let vAz=180,vAlt=40,zoom=1.8;
 
 function onMsg(e){
   try{
@@ -107,7 +107,7 @@ function project(alt,az){
   const dAz=((az-vAz+540)%360)-180;
   const dAlt=alt-vAlt;
   const sc=Math.min(W,H)*0.46/(90/zoom);
-  return{x:W/2+dAz*sc,y:H/2-dAlt*sc,vis:alt>-5&&Math.abs(dAz)<95&&Math.abs(dAlt)<75};
+  return{x:W/2-dAz*sc,y:H/2-dAlt*sc,vis:alt>-5&&Math.abs(dAz)<95&&Math.abs(dAlt)<75};
 }
 
 function bvToColor(bv){
