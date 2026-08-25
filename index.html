@@ -168,13 +168,14 @@ function horizontalToEquatorial(azDeg, altDeg, latDeg, lonDeg, date) {
 // App color theme (matches ACCENT/GOLD/BG used throughout the RN app)
 // ============================================================
 var config = {
-  width: 0,
+  width: window.innerWidth,
   projection: "orthographic",
   transform: "equatorial",
   center: null,
   geopos: null,
   follow: "center",
   interactive: true,
+  controls: false, // d3-celestial's own +/- zoom buttons were overlapping our custom AR-toggle UI
   adaptable: true,
   disableAnimations: false,
   background: { fill: "#050f0a", opacity: 1 },
@@ -201,6 +202,7 @@ var mapInitialized = false;
 var arActive = false;
 var currentLatLon = null;
 var overlayPositions = {}; // id -> {x, y, name, ra, dec}, refreshed every redraw
+var labelNodes = {}; // id -> DOM node, reused across redraws instead of rebuilt
 
 function sendToRN(event, data) {
   var msg = JSON.stringify({ event: event, data: data || {} });
@@ -210,6 +212,16 @@ function sendToRN(event, data) {
 function initMap() {
   if (mapInitialized || !currentLatLon) return;
   mapInitialized = true;
+  // Set container's pixel size explicitly BEFORE Celestial.display() runs —
+  // calling display() before the container has settled layout dimensions
+  // was the cause of the shifted/cropped globe (d3-celestial computes its
+  // projection radius from the container size at call time, once, not
+  // reactively).
+  var mapEl = document.getElementById('celestial-map');
+  mapEl.style.width = window.innerWidth + 'px';
+  mapEl.style.height = window.innerHeight + 'px';
+  config.width = window.innerWidth;
+
   config.geopos = [currentLatLon.lat, currentLatLon.lon];
   Celestial.display(config);
   Celestial.addCallback(redrawOverlay);
@@ -218,54 +230,74 @@ function initMap() {
 }
 
 // Draws the curated tappable objects as gold markers on top of
-// d3-celestial's own canvas, and keeps overlayPositions in sync with
-// their current screen position (updated on every internal redraw —
-// pan, zoom, or programmatic rotate from the AR compass).
+// d3-celestial's own canvas. Uses the SAME documented pipeline as
+// d3-celestial's own point-data tutorial (getData -> mapProjection),
+// rather than the lower-level getPoint() call, which had a units
+// mismatch. Label DOM nodes are reused by id across redraws (not
+// recreated every frame) — the previous version's innerHTML='' + rebuild
+// on every single redraw during a drag gesture was the cause of the
+// flicker while panning.
 function redrawOverlay() {
-  var labelContainer = document.getElementById('obj-labels');
-  labelContainer.innerHTML = '';
-  overlayPositions = {};
-
   var ctx = Celestial.context;
   if (!ctx) return;
 
-  Object.keys(SKY_OBJECT_COORDS).forEach(function (id) {
-    var obj = SKY_OBJECT_COORDS[id];
-    var raDeg = obj.ra * 15;
+  var geojson = {
+    type: 'FeatureCollection',
+    features: Object.keys(SKY_OBJECT_COORDS).map(function (id) {
+      var obj = SKY_OBJECT_COORDS[id];
+      return {
+        type: 'Feature',
+        id: id,
+        properties: { name: obj.name, ra: obj.ra, dec: obj.dec },
+        geometry: { type: 'Point', coordinates: [obj.ra * 15, obj.dec] } // degrees, GeoJSON [lon, lat] convention
+      };
+    })
+  };
+  var transformed = Celestial.getData(geojson, config.transform);
+
+  var seenIds = {};
+
+  transformed.features.forEach(function (feature) {
+    var id = feature.id;
+    var props = feature.properties;
     var pt;
     try {
-      var transformed = Celestial.getPoint([raDeg, obj.dec], config.transform);
-      pt = Celestial.mapProjection(transformed);
+      pt = Celestial.mapProjection(feature.geometry.coordinates);
     } catch (e) {
       return;
     }
     if (!pt || isNaN(pt[0]) || isNaN(pt[1])) return;
-
-    // Off-screen (behind the visible hemisphere on an orthographic
-    // projection) points come back with wildly large/NaN-ish coords in
-    // some d3-celestial versions — skip anything clearly outside canvas.
     if (pt[0] < -50 || pt[1] < -50 || pt[0] > ctx.canvas.width + 50 || pt[1] > ctx.canvas.height + 50) return;
 
+    seenIds[id] = true;
+    overlayPositions[id] = { x: pt[0], y: pt[1], name: props.name, ra: props.ra, dec: props.dec };
+
     ctx.beginPath();
     ctx.arc(pt[0], pt[1], 4, 0, 2 * Math.PI);
-    ctx.fillStyle = '#d6a574';
+    ctx.fillStyle = 'rgba(214,165,116,0.5)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(214,165,116,0.5)';
-    ctx.lineWidth = 6;
-    ctx.stroke();
     ctx.fillStyle = '#d6a574';
     ctx.beginPath();
     ctx.arc(pt[0], pt[1], 4, 0, 2 * Math.PI);
     ctx.fill();
 
-    var label = document.createElement('div');
-    label.className = 'obj-label';
+    var label = labelNodes[id];
+    if (!label) {
+      label = document.createElement('div');
+      label.className = 'obj-label';
+      label.textContent = props.name;
+      document.getElementById('obj-labels').appendChild(label);
+      labelNodes[id] = label;
+    }
+    label.style.display = 'block';
     label.style.left = pt[0] + 'px';
     label.style.top = pt[1] + 'px';
-    label.textContent = obj.name;
-    labelContainer.appendChild(label);
+  });
 
-    overlayPositions[id] = { x: pt[0], y: pt[1], name: obj.name, ra: obj.ra, dec: obj.dec };
+  // Hide (don't remove) labels for objects that are off-screen this frame —
+  // avoids DOM churn, just toggles visibility.
+  Object.keys(labelNodes).forEach(function (id) {
+    if (!seenIds[id]) labelNodes[id].style.display = 'none';
   });
 }
 
@@ -318,7 +350,13 @@ window.addEventListener('message', function (event) {
 
     if (msg.type === 'COMPASS' && mapInitialized && arActive && currentLatLon) {
       var eq = horizontalToEquatorial(msg.azimuth, msg.altitude, currentLatLon.lat, currentLatLon.lon, new Date());
-      Celestial.rotate({ center: [eq.raHours, eq.decDeg] });
+      // Celestial.rotate's center expects degrees (per the main README —
+      // a demo file comment claimed hours for equatorial mode specifically,
+      // which contradicted the README and was the actual cause of the
+      // blank AR view: passing an hours value (0-24) where degrees (0-360)
+      // was expected effectively centered the view on a near-meaningless
+      // sliver of sky).
+      Celestial.rotate({ center: [eq.raHours * 15, eq.decDeg] });
     }
   } catch (e) {
     // Malformed or unrelated message — ignore.
