@@ -164,6 +164,15 @@ function horizontalToEquatorial(azDeg, altDeg, latDeg, lonDeg, date) {
   return { raHours: raHours, decDeg: dec * R2D };
 }
 
+// At zenith (looking straight up), hour angle is 0 by definition (an
+// object at zenith is, by construction, on the local meridian) — RA =
+// LST, Dec = observer latitude. Much simpler than the general formula
+// above, and avoids that formula's singularity at alt=90 (azimuth is
+// undefined when looking straight up).
+function getZenithRaDec(latDeg, lonDeg, date) {
+  return { raHours: getLST(date, lonDeg), decDeg: latDeg };
+}
+
 // ============================================================
 // App color theme (matches ACCENT/GOLD/BG used throughout the RN app)
 // ============================================================
@@ -172,10 +181,16 @@ var config = {
   projection: "orthographic",
   transform: "equatorial",
   center: null,
+  // geopos removed deliberately — ofrohn/d3-celestial issue #93 confirms
+  // "Setting geopos in config doesn't change the initial position of the
+  // celestial map" is a known, unresolved upstream bug. Positioning is
+  // instead forced via an explicit Celestial.rotate() call right after
+  // display() below, which uses a different, more reliable code path.
   geopos: null,
-  follow: "center",
+  follow: "center", // NOT "zenith" — zenith-follow likely shares the same broken geopos-dependent path; "center" just respects whatever we explicitly rotate() to
   interactive: true,
-  controls: false, // d3-celestial's own +/- zoom buttons were overlapping our custom AR-toggle UI
+  controls: false,
+  form: false, // belt-and-suspenders in case the stray zoom buttons are actually part of the settings-form UI, not "controls"
   adaptable: true,
   disableAnimations: false,
   background: { fill: "#050f0a", opacity: 1 },
@@ -209,22 +224,44 @@ function sendToRN(event, data) {
   if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(msg);
 }
 
+// Defensive cleanup: hides any stray control-like elements (zoom +/-
+// buttons etc.) that d3-celestial injects regardless of the controls/form
+// config flags — matched structurally (short "+"/"-" text content, or
+// class names mentioning zoom/control) rather than by guessing exact
+// class names we can't confirm from outside the library's source.
+function hideStrayControls() {
+  var mapEl = document.getElementById('celestial-map');
+  if (!mapEl) return;
+  var candidates = mapEl.querySelectorAll('button, a, div, span');
+  candidates.forEach(function (el) {
+    if (el.id === 'celestial-map') return;
+    var txt = (el.textContent || '').trim();
+    var cls = (el.className || '').toString().toLowerCase();
+    if (txt === '+' || txt === '-' || txt === '−' || cls.indexOf('zoom') !== -1 || cls.indexOf('control') !== -1) {
+      el.style.display = 'none';
+    }
+  });
+}
+
 function initMap() {
   if (mapInitialized || !currentLatLon) return;
   mapInitialized = true;
-  // Set container's pixel size explicitly BEFORE Celestial.display() runs —
-  // calling display() before the container has settled layout dimensions
-  // was the cause of the shifted/cropped globe (d3-celestial computes its
-  // projection radius from the container size at call time, once, not
-  // reactively).
   var mapEl = document.getElementById('celestial-map');
   mapEl.style.width = window.innerWidth + 'px';
   mapEl.style.height = window.innerHeight + 'px';
   config.width = window.innerWidth;
 
-  config.geopos = [currentLatLon.lat, currentLatLon.lon];
   Celestial.display(config);
+
+  // Force correct initial position via rotate() (working path) instead of
+  // relying on the broken geopos config option.
+  var zenith = getZenithRaDec(currentLatLon.lat, currentLatLon.lon, new Date());
+  Celestial.rotate({ center: [zenith.raHours * 15, zenith.decDeg] });
+
   Celestial.addCallback(redrawOverlay);
+  hideStrayControls();
+  setTimeout(hideStrayControls, 500); // catches controls injected slightly after display()
+
   document.getElementById('loading').style.display = 'none';
   sendToRN('MAP_READY');
 }
