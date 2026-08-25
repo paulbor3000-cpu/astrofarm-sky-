@@ -34,13 +34,10 @@
 
   #ar-toggle {
     position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
-    background: rgba(5,15,10,0.85); border: 1px solid rgba(77,255,145,0.35);
-    color: #4dff91; padding: 10px 20px; border-radius: 24px;
-    font-size: 13px; font-weight: 600; z-index: 40;
+    background: rgba(5,15,10,0.85); border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.45); padding: 10px 20px; border-radius: 24px;
+    font-size: 12px; font-weight: 600; z-index: 40;
     -webkit-tap-highlight-color: transparent; user-select: none;
-  }
-  #ar-toggle.active {
-    background: #4dff91; color: #050f0a; border-color: #4dff91;
   }
 
   .obj-label {
@@ -56,7 +53,7 @@
 
 <div id="loading">LOADING SKY MAP...</div>
 <div id="celestial-map"></div>
-<div id="ar-toggle">📍 TAP FOR AR VIEW</div>
+<div id="ar-toggle">🚧 AR VIEW — COMING SOON</div>
 <div id="obj-labels"></div>
 
 <script>
@@ -360,16 +357,21 @@ document.getElementById('celestial-map').addEventListener('click', function (e) 
 });
 
 document.getElementById('ar-toggle').addEventListener('click', function () {
-  arActive = !arActive;
+  // AR/compass mode disabled for now — d3-celestial's rotate() produced a
+  // blank view whenever it was driven continuously from device compass
+  // updates, and repeated attempts to fix it (unit conversion, bypassing
+  // the buggy geopos config path) didn't resolve it. Pan/zoom browsing
+  // and tap-to-identify both work reliably, so that's what ships; AR
+  // stays visibly present but inert until revisited.
+  //
+  // Deliberately NOT sending AR_TOGGLE to React Native here — StarMap.tsx
+  // only starts the Magnetometer/Accelerometer listeners when arActive is
+  // true, so never sending "enabled: true" means those sensors are simply
+  // never started. No RN-side change needed for this.
   var el = document.getElementById('ar-toggle');
-  if (arActive) {
-    el.classList.add('active');
-    el.textContent = '🧭 AR VIEW ON';
-  } else {
-    el.classList.remove('active');
-    el.textContent = '📍 TAP FOR AR VIEW';
-  }
-  sendToRN('AR_TOGGLE', { enabled: arActive });
+  var original = el.textContent;
+  el.textContent = '🚧 AR VIEW — COMING SOON';
+  setTimeout(function () { el.textContent = original; }, 2000);
 });
 
 // ============================================================
@@ -385,15 +387,11 @@ window.addEventListener('message', function (event) {
       initMap();
     }
 
-    if (msg.type === 'COMPASS' && mapInitialized && arActive && currentLatLon) {
-      var eq = horizontalToEquatorial(msg.azimuth, msg.altitude, currentLatLon.lat, currentLatLon.lon, new Date());
-      // Celestial.rotate's center expects degrees (per the main README —
-      // a demo file comment claimed hours for equatorial mode specifically,
-      // which contradicted the README and was the actual cause of the
-      // blank AR view: passing an hours value (0-24) where degrees (0-360)
-      // was expected effectively centered the view on a near-meaningless
-      // sliver of sky).
-      Celestial.rotate({ center: [eq.raHours * 15, eq.decDeg] });
+    // AR mode is disabled for now (see ar-toggle click handler above) — RN
+    // never sends COMPASS messages since arActive never becomes true on
+    // its side, but guarding here too in case that ever changes.
+    if (msg.type === 'COMPASS') {
+      // no-op — AR/compass-driven rotation disabled, see ar-toggle handler
     }
   } catch (e) {
     // Malformed or unrelated message — ignore.
