@@ -30,6 +30,15 @@
   html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #050f0a; overflow: hidden; }
   #map { width: 100%; height: 100%; background: #050f0a; }
 
+  /* Standard OSM tiles are light-colored by default. Inverting +
+     hue-rotating approximates a dark map without needing a paid/keyed
+     "dark" tile provider -- applied only to the base layer's own pane,
+     not the NASA overlay drawn on top of it (see .base-pane below /
+     the JS that assigns this class to the base layer's pane). */
+  .dark-basemap-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.6);
+  }
+
   .leaflet-control-attribution {
     background: rgba(5,15,10,0.75) !important;
     color: rgba(255,255,255,0.5) !important;
@@ -77,11 +86,27 @@
 
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  // Base map -- CARTO Dark Matter, matches the app's dark theme.
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 20,
+  // Base map -- standard OpenStreetMap tiles. Switched from CARTO's
+  // "dark_all" tiles on 2026-09-02: that free anonymous endpoint now
+  // requires an API key (CARTO restricted it since these examples were
+  // originally written). Standard OSM tiles need no key at all. Note for
+  // later: OSM's own tile servers are meant for light/evaluation use
+  // (see https://operations.osmfoundation.org/policies/tiles/) -- fine
+  // for this beta's traffic, but worth moving to a proper provider
+  // (MapTiler, Stadia, etc., free tier + API key) before any real public
+  // scale.
+  // Own pane for the base layer only, so the dark-mode CSS filter
+  // (invert/hue-rotate) applies to it without also inverting the NASA
+  // night-lights overlay drawn on top.
+  map.createPane('basePane');
+  map.getPane('basePane').style.zIndex = 200;
+  map.getPane('basePane').classList.add('dark-basemap-pane');
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    subdomains: 'abc',
+    maxZoom: 19,
+    pane: 'basePane',
   }).addTo(map);
 
   // Light pollution overlay -- NASA GIBS.
