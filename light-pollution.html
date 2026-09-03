@@ -109,13 +109,22 @@
     pane: 'basePane',
   }).addTo(map);
 
-  // Light pollution overlay -- NASA GIBS.
+  // Light pollution overlay -- NASA GIBS. Explicitly pinned to Leaflet's
+  // built-in 'overlayPane' (z-index 400 by default), which always sits
+  // above the default 'tilePane' (z-index 200). This matters here: the
+  // custom 'basePane' created above for the base map's dark-mode filter
+  // gets appended to the DOM *after* Leaflet's default tilePane, which
+  // otherwise silently puts the base map layer visually on top of
+  // anything left in the default tilePane -- exactly what was happening
+  // here, hiding the light-pollution data entirely underneath the base
+  // map. Found 2026-09-02 after the overlay looked completely absent.
   L.tileLayer(
     'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_CityLights_2012/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg',
     {
       attribution: '<a href="https://earthdata.nasa.gov/eosdis/science-system-description/eosdis-components/gibs">NASA EOSDIS GIBS</a>',
       maxZoom: 8,
-      opacity: 0.75,
+      opacity: 0.9,
+      pane: 'overlayPane',
       bounds: [[-85.0511287776, -179.999999975], [85.0511287776, 179.999999975]],
     }
   ).addTo(map);
