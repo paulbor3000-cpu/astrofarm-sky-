@@ -175,7 +175,15 @@ function getZenithRaDec(latDeg, lonDeg, date) {
 // ============================================================
 var config = {
   width: window.innerWidth,
-  height: window.innerHeight,
+  // NOTE: d3-celestial has no "height" config option — height is always
+  // derived internally from width + the projection's own aspect ratio
+  // (confirmed in the library's own readme: "height is determined by
+  // projection"). An earlier attempt to fix this by setting
+  // config.height was a no-op for exactly that reason. projectionRatio
+  // is the actual documented override for this — set to the screen's
+  // real aspect ratio so the orthographic globe stretches to fill it
+  // instead of rendering at its default square-ish ratio.
+  projectionRatio: window.innerWidth / window.innerHeight,
   projection: "orthographic",
   transform: "equatorial",
   center: null,
@@ -248,7 +256,7 @@ function initMap() {
   mapEl.style.width = window.innerWidth + 'px';
   mapEl.style.height = window.innerHeight + 'px';
   config.width = window.innerWidth;
-  config.height = window.innerHeight;
+  config.projectionRatio = window.innerWidth / window.innerHeight;
 
   Celestial.display(config);
 
