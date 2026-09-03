@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Astrofarm Light Pollution Map</title>
+
+<!--
+  Self-hosted replacement for the previous lightpollutionmap.info
+  WebView embed (2026-09-02) -- that page's terms didn't clearly permit
+  embedding a third party's live site inside a commercial app, and it
+  carried third-party ads. This page instead combines two openly
+  licensed sources we control directly:
+
+  - Base map: CARTO "Dark Matter" tiles (free, no API key, attribution
+    required -- https://carto.com/attributions)
+  - Light pollution overlay: NASA GIBS VIIRS_CityLights_2012 layer --
+    NASA imagery is U.S. government work (public domain), and GIBS is
+    NASA's own tile service, explicitly built for exactly this kind of
+    third-party embedding. See https://nasa-gibs.github.io/gibs-api-docs/
+    and https://github.com/nasa-gibs/web-examples (Apache 2.0) for the
+    reference implementation this is based on.
+
+  Leaflet itself is BSD-2-Clause licensed.
+-->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #050f0a; overflow: hidden; }
+  #map { width: 100%; height: 100%; background: #050f0a; }
+
+  .leaflet-control-attribution {
+    background: rgba(5,15,10,0.75) !important;
+    color: rgba(255,255,255,0.5) !important;
+    font-size: 9px !important;
+  }
+  .leaflet-control-attribution a { color: rgba(77,255,145,0.8) !important; }
+
+  .af-marker {
+    width: 16px; height: 16px; border-radius: 8px;
+    background: #4dff91; border: 2px solid #050f0a;
+    box-shadow: 0 0 0 4px rgba(77,255,145,0.25);
+  }
+
+  #legend {
+    position: fixed; bottom: 14px; left: 14px; z-index: 1000;
+    background: rgba(5,15,10,0.85); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px; padding: 8px 12px;
+    font-family: -apple-system, sans-serif; font-size: 10px; color: rgba(255,255,255,0.6);
+    max-width: 220px; line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="legend">Brighter = more light pollution. Data: NASA VIIRS (Black Marble / City Lights composite).</div>
+
+<script>
+  // Read starting position from URL query params (?lat=..&lon=..&zoom=..),
+  // same mechanism the previous embed used -- the React Native side just
+  // needs to pass these instead of building a lightpollutionmap.info URL.
+  var params = new URLSearchParams(window.location.search);
+  var lat = parseFloat(params.get('lat')) || 51.5;
+  var lon = parseFloat(params.get('lon')) || -0.12;
+  var zoom = parseFloat(params.get('zoom')) || 8;
+
+  var map = L.map('map', {
+    center: [lat, lon],
+    zoom: zoom,
+    minZoom: 2,
+    maxZoom: 8, // VIIRS_CityLights_2012 tiles top out at zoom 8
+    zoomControl: false,
+    attributionControl: true,
+  });
+
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  // Base map -- CARTO Dark Matter, matches the app's dark theme.
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20,
+  }).addTo(map);
+
+  // Light pollution overlay -- NASA GIBS.
+  L.tileLayer(
+    'https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_CityLights_2012/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg',
+    {
+      attribution: '<a href="https://earthdata.nasa.gov/eosdis/science-system-description/eosdis-components/gibs">NASA EOSDIS GIBS</a>',
+      maxZoom: 8,
+      opacity: 0.75,
+      bounds: [[-85.0511287776, -179.999999975], [85.0511287776, 179.999999975]],
+    }
+  ).addTo(map);
+
+  var markerIcon = L.divIcon({ className: '', html: '<div class="af-marker"></div>', iconSize: [16, 16] });
+  L.marker([lat, lon], { icon: markerIcon }).addTo(map);
+</script>
+</body>
+</html>
